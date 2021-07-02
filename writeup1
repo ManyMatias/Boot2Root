@@ -161,4 +161,12 @@ https://192.168.56.3/forum/templates_c/exploit.php?exploit=cat%20/home/LOOKATME/
 lmezard:G!@M6f4Eatau{sF" 
 
 Avec cet identifiant et ce mot de passe, on peut se connecter sur la VM
-Dans le home de lmezard, il y a un fichier `fun` et un ficher `README`
+Dans le home de lmezard, il y a un fichier `fun` et un ficher `README` qui nous challenge a trouver la solution du probleme.
+
+Le fichier fun comporte des strings, des noms de fichiers, etc. La string ustar revient souvent, et on en deduit que le fichier est un fichier tar.
+`tar -C /tmp -xvf fun`
+Et on obtient plein de fichiers. Certains comportent des strings interessantes : "getme()". On trouve :
+            grep -A2 getme /tmp/ft_fun/*
+les fonctions getme retournent un caractere qui est ensuite print et pour lequel on nous dit d'utiliser SHA-@%^
+Certaines fonctions sont sur plusieurs fichiers, et dans ce cas il faut se ficher au numero de fichier inclu dans le contenu du fichier et regarder le ficher suivant.
+On obtient : Iheartpwnge
