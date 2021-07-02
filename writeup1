@@ -169,4 +169,4 @@ Et on obtient plein de fichiers. Certains comportent des strings interessantes :
             grep -A2 getme /tmp/ft_fun/*
 les fonctions getme retournent un caractere qui est ensuite print et pour lequel on nous dit d'utiliser SHA-@%^
 Certaines fonctions sont sur plusieurs fichiers, et dans ce cas il faut se ficher au numero de fichier inclu dans le contenu du fichier et regarder le ficher suivant.
-On obtient : Iheartpwnge
+On obtient : Iheartpwnage
