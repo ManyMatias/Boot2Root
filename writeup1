@@ -167,6 +167,67 @@ Le fichier fun comporte des strings, des noms de fichiers, etc. La string ustar 
 `tar -C /tmp -xvf fun`
 Et on obtient plein de fichiers. Certains comportent des strings interessantes : "getme()". On trouve :
             grep -A2 getme /tmp/ft_fun/*
-les fonctions getme retournent un caractere qui est ensuite print et pour lequel on nous dit d'utiliser SHA-@%^
+les fonctions getme retournent un caractere qui est ensuite print et pour lequel on nous dit d'utiliser SHA-256
 Certaines fonctions sont sur plusieurs fichiers, et dans ce cas il faut se ficher au numero de fichier inclu dans le contenu du fichier et regarder le ficher suivant.
-On obtient : Iheartpwnage
+On obtient : Iheartpwnage => 330b845f32185747e4f8ca15d40ca59796035c89ea809fb5d30f4da83ecf45a4
+
+ssh laurie@192.168.0.30 -p 22
+mdp : 330b845f32185747e4f8ca15d40ca59796035c89ea809fb5d30f4da83ecf45a4
+
+
+il y a un fichier bomb que l'on execute :
+Après avoir testé différentes méthodes, on a retenu Ghidra :
+
+On récupère le fichier avec scp -P 22 laurie@192.168.0.30:bomb .
+
+Les réponses aux 6 phases sont :
+Phase 1 : Public speaking is very easy.
+Note : on le trouve directement en faisant un string ou dans ghidra fonction Phase_1 avec le compare
+
+Phase 2 : 1 2 6 24 120 720
+Note : on a fait le calcul u[i] = i x u[i - 1]  avec u[0] = 1
+
+Phase 3 : 1 b 214
+On sait que le milieu = b (indice) donc on essaye de trouver le premier chiffre qui correspondrait et on en deduit le dernier (ex avec les cases)
+
+Phase 4 : 9
+Il fallait que ce soit égale à 55 donc on a fait un petit programme qui nous ressortira la valeur qui correspond (cf Phase_4_bomb.c)
+
+Phase 5 : opekmq
+En examinant la fonction on voit qu'il y a une recursive appliquée à la string entrée et qui la modifie
+On cherche la string qui apres modification sera égale à giants
+Le programme fait l'équivalence entre toutes les lettres
+(cf Phase_5_bomb.c)
+
+Phase 6 : 4 2 6 3 1 5
+On comprend qu'il doit y avoir 6 nombres et que ces 6 nombres sont compris entre 1 et 6 et sont uniques. L'indice nous indique que le premier nombre est 4.
+
+En cherchant la valeur de node1 on se rend compte qu'il y a aussi node2, node3 etc.. et qu'ils sont comme chainés.
+on prend alors la valeur de node1 qui est en hexa et on la convertie en decimal
+https://decimal-to-binary.com/decimal-to-binary-converter-online.html
+
+On obtient pour chaque :
+node : hexa : decimal
+1 : 000000fd : 253
+2 : 000002d5 : 725
+3 : 0000012d : 301
+4 : 000003e5 : 997
+5 : 000000d4 : 212
+6 : 000001b0 : 432
+
+On voit alors que n+1 doit etre inferieur à n donc ça donne 4 2 6 3 1 5 (DESC)
+
+La bomb est defused mais quand on tape le mdp pour Thor ça ne fonctionne pas :
+Publicspeakingisveryeasy.126241207201b2149opekmq426315
+
+
+Sur le slack, il est dit qu'il faut inverser 2 caracteres, donc en bruteforcant un peu on obtient le vrai mot de passe : Publicspeakingisveryeasy.126241207201b2149opekmq426135
+
+on peut donc se connecter
+ssh thor@192.168.0.30 -p 22
+Publicspeakingisveryeasy.126241207201b2149opekmq426135
+
+Une fois connecté, le README demande juste de résoudre l'exo et de s'en servir comme mdp pour zaz
+Quand on cat on obtient un long texte avec à la fin "Can you digest the message? :)"
+
+
